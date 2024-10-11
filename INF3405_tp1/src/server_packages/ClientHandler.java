@@ -7,12 +7,25 @@ import java.text.DateFormat;
 import java.util.Date;
 import java.text.SimpleDateFormat;
 
+/**
+ * Handles client connections and manages file operations such as listing directories, 
+ * creating directories, changing directories, uploading, downloading, and deleting files.
+ */
+
 public class ClientHandler extends Thread { 
     private Socket socket;
     private int clientNumber;
     private Path currentDirectory;
     private DataOutputStream out; 
     private DataInputStream in;  
+    
+    /**
+     * Constructor for ClientHandler.
+     * Initializes the client socket, client number, and sets the current working directory to the server's root directory.
+     *
+     * @param socket       The client socket.
+     * @param clientNumber The number associated with the client.
+     */
 
     public ClientHandler(Socket socket, int clientNumber) {
         this.socket = socket;
@@ -20,6 +33,13 @@ public class ClientHandler extends Thread {
         this.currentDirectory = Paths.get(System.getProperty("user.dir"));
         System.out.println("New connection with client#" + clientNumber + " at " + socket);
     }
+    
+    /**
+     * Splits the input string from the client into command and argument.
+     *
+     * @param input The input string from the client.
+     * @return A string array where the first element is the command and the second element is the argument.
+     */
     
     private String[] command(String input){
         String[] command = input.split(" ", 2);
@@ -31,34 +51,41 @@ public class ClientHandler extends Thread {
         return command;
     }
    
+    /**
+     * Handles the client's command and executes the appropriate method for the given command.
+     *
+     * @param command The command and its argument from the client.
+     * @throws IOException If an I/O error occurs.
+     */
+    
     private void handleCommand(String[] command) throws IOException {
     	
     	switch(command[0])
     	{
     	case "ls" :
-    		ls();
+    		ls(); // Lists files in the current directory
     		break; 
     		
     	case "mkdir":
-    		mkdir(command[1]);
+    		mkdir(command[1]); // Creates a new directory
 		    break; 
 		    
     	case "cd":
-    		cd(command[1]);
+    		cd(command[1]); // Changes the current directory
 		    break;
 		    
     	case "upload":
-    		saveFile(command[1]);
+    		saveFile(command[1]); // Saves a file uploaded by the client
 		    break;
 		    
     	case "download":
 			if (isFileExist(command[1])) {    					
-				sendFile(command[1]);
+				sendFile(command[1]); // Sends a file to the client
 			}
 		    break;
 		    
     	case "delete":	
-			delete(command[1]);
+			delete(command[1]); // Deletes a file or directory
 		    break;
 		    
 	    default:
@@ -67,6 +94,12 @@ public class ClientHandler extends Thread {
 	    	break;
     	}
     } 
+    
+    /**
+     * Lists all files and directories in the current directory.
+     * 
+     * @throws IOException If an I/O error occurs during file listing.
+     */
     
     private void ls() throws IOException {
         try {
@@ -86,6 +119,13 @@ public class ClientHandler extends Thread {
         }
     }
     
+    /**
+     * Creates a new directory in the current directory.
+     * 
+     * @param directoryName The name of the directory to create.
+     * @throws IOException If an error occurs while creating the directory.
+     */
+    
     private void mkdir(String directoryName) throws IOException {
         try {
             Path newDir = currentDirectory.resolve(directoryName);
@@ -97,6 +137,13 @@ public class ClientHandler extends Thread {
         }
     }
     
+    /**
+     * Changes the current directory.
+     * 
+     * @param directoryName The name of the directory to change to.
+     * @throws IOException If an error occurs while changing the directory.
+     */
+    
     private void cd(String directoryName) throws IOException {
         try {
             if (directoryName.equals("..")) {
@@ -104,7 +151,7 @@ public class ClientHandler extends Thread {
             } else {
                 Path newDir = currentDirectory.resolve(directoryName);
                 if (Files.isDirectory(newDir)) {
-                    currentDirectory = newDir;
+                    currentDirectory = newDir; // Change to the new directory
                 } else {
                     out.writeUTF("Directory does not exist: " + newDir);
                     return;
@@ -116,6 +163,13 @@ public class ClientHandler extends Thread {
             System.err.println("Error changing directory: " + e.getMessage());
         }
     }
+    
+    /**
+     * Saves a file sent by the client.
+     * 
+     * @param fileName The name of the file to save.
+     * @throws IOException If an error occurs during file upload.
+     */
     
 	private void saveFile(String fileName) throws IOException { // Using https://stackoverflow.com/questions/858980/file-to-byte-in-java
 		DataInputStream dis = new DataInputStream(socket.getInputStream());
@@ -130,6 +184,14 @@ public class ClientHandler extends Thread {
 		fos.close();
 		out.writeUTF(fileName + " succesfully uploaded");
 	}
+	
+    /**
+     * Checks if a file exists in the current directory.
+     * 
+     * @param fileName The name of the file to check.
+     * @return true if the file exists, false otherwise.
+     * @throws IOException If an I/O error occurs.
+     */
 
     private boolean isFileExist(String fileName) throws IOException {
         Path filePath = currentDirectory.resolve(fileName);
@@ -141,6 +203,13 @@ public class ClientHandler extends Thread {
             return true;
         }
     }
+    
+    /**
+     * Sends a file to the client.
+     * 
+     * @param fileName The name of the file to send.
+     * @throws IOException If an error occurs during file download.
+     */
 
 	private void sendFile(String fileName) throws IOException { 
 		
@@ -157,6 +226,12 @@ public class ClientHandler extends Thread {
 		out.writeUTF(fileName + " succesfully downloaded");
 	}
 
+    /**
+     * Deletes a file or directory in the current directory.
+     * 
+     * @param name The name of the file or directory to delete.
+     * @throws IOException If an error occurs during deletion.
+     */
 
     private void delete(String name) throws IOException {
         try {
@@ -173,6 +248,10 @@ public class ClientHandler extends Thread {
         }
     }
 
+    /**
+     * The main logic for handling client commands. 
+     * It reads commands from the client, processes them, and sends responses back.
+     */
 
     public void run() {
         try {
@@ -189,6 +268,8 @@ public class ClientHandler extends Thread {
                     System.out.println("Client requested exit."); 
                     break;
                 }
+                
+                // Log the client command with timestamp
                 
                 DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd@HH:mm:ss");
                 Date date = new Date();

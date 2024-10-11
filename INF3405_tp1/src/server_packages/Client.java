@@ -10,6 +10,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.regex.Pattern;
 
+/**
+ * Client class that connects to a server and handles file upload and download requests
+ * over a socket. It allows users to interact with the server using commands.
+ */
+
 public class Client {
 	
     private Socket socket;
@@ -20,9 +25,23 @@ public class Client {
 		Pattern.compile("^(([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\.){3}([01]?\\d\\d?|2[0-4]\\d|25[0-5])$"); 
     	//Using https://stackoverflow.com/questions/5667371/validate-ipv4-address-in-java
     
+    /**
+     * Verifies if the given IP address is valid based on the IPv4 format.
+     *
+     * @param ip The IP address to check.
+     * @return true if the IP is valid, false otherwise.
+     */
+    
     public static boolean isValidIP(final String ip) {
         return IP_PATTERN.matcher(ip).matches();
     }
+    
+    /**
+     * Verifies if the port number is within the valid range (5000-5500).
+     *
+     * @param port The port number to check.
+     * @return true if the port is valid, false otherwise.
+     */
     
 	public static boolean isValidPort(final int port) {
 		if (port >= 5000 && port <= 5500){
@@ -32,6 +51,13 @@ public class Client {
 			return false;
 		}
 	}
+	
+    /**
+     * Splits the user input into a command and an argument.
+     *
+     * @param input The input string from the user.
+     * @return A string array with the command and the argument.
+     */
 	
     private String[] command(String input){
         String[] command = input.split(" ", 2);
@@ -43,6 +69,13 @@ public class Client {
         return command;
     }
     
+    /**
+     * Checks if the given file exists and is a regular file.
+     *
+     * @param fileName The name of the file to check.
+     * @return true if the file exists and is a regular file, false otherwise.
+     */
+    
     private boolean isFileExist(String fileName) {
         Path filePath = Paths.get(fileName);
         if (!Files.exists(filePath) || !Files.isRegularFile(filePath)) {
@@ -51,7 +84,13 @@ public class Client {
         }
         return true;
     }
-
+    
+    /**
+     * Processes the user command and sends the appropriate request to the server.
+     * Supports "upload", "download"
+     *
+     * @param command The command array where the first element is the command and the second is the argument.
+     */
     
     private void handleCommand(String[] command) throws IOException {
         switch(command[0]) {
@@ -82,6 +121,13 @@ public class Client {
         catchResponse();  
     }
 
+    /**
+     * Processes the user command and sends the appropriate request to the server.
+     * Supports "upload", "download", and other commands.
+     *
+     * @param command The command array where the first element is the command and the second is the argument.
+     * @throws IOException If an I/O error occurs.
+     */
 	
     private void upload(File file) throws IOException { // Using https://stackoverflow.com/questions/10367698/java-multiple-file-transfer-over-socket
 		DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
@@ -95,8 +141,14 @@ public class Client {
 		
 		fis.close();
     }
-
     
+    /**
+     * Downloads a file from the server and saves it locally with the specified name.
+     *
+     * @param fileName The name of the file to download.
+     * @throws IOException If an I/O error occurs during the file download.
+     */
+
     private void download(String fileName) throws IOException { 
 		DataInputStream dis = new DataInputStream(socket.getInputStream());
 		FileOutputStream fos = new FileOutputStream(fileName);
@@ -111,6 +163,11 @@ public class Client {
 		fos.close();
     }
     
+    /**
+     * Listens for responses from the server and prints them to the console
+     * until the "Process done" message is received.
+     */
+    
 	private void catchResponse(){
         String response = "";
 	    try {
@@ -121,9 +178,18 @@ public class Client {
 	        System.err.println("Error: " + e.getMessage());
 	    }
 	}
+	
+    /**
+     * The main method where the client prompts the user for the server's IP address and port,
+     * establishes a connection, and processes user commands.
+     *
+     * @param args Command-line arguments (not used).
+     */
 
     public static void main(String[] args) {
     	Client client = new Client();
+    	
+        // Input the server's IP address
 
         System.out.println("Enter the IP address of your server:  ");
         String serverAddress = System.console().readLine();
@@ -132,6 +198,8 @@ public class Client {
         	serverAddress = System.console().readLine();
         }
         
+        // Input the server's port
+
         System.out.println("Enter the port address of your server: ");
         int serverPort = Integer.parseInt(System.console().readLine());
         while (!Server.isValidPort(serverPort)){
@@ -139,6 +207,7 @@ public class Client {
             serverPort = Integer.parseInt(System.console().readLine());
         }
         
+        // Establish a connection with the server
 
         try {
             client.socket = new Socket(serverAddress, serverPort);
@@ -147,9 +216,13 @@ public class Client {
            
             System.out.format("Connected to the server [%s:%d]%n", serverAddress, serverPort);
 
+            // Receive and print the server's welcome message
+
             String helloMessageFromServer = client.in.readUTF();
             System.out.println("Message from server: " + helloMessageFromServer);
             
+            // Main command loop
+
             String command[];
             while (true) {
     	        System.out.println("Enter your command: ");
